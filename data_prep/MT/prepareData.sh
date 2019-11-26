@@ -47,6 +47,7 @@ echo "pre-processing train data..."
 for l in $src $tgt; do
     f=train.tags.$lang.$l
     tok=train.tags.$lang.tok.$l
+	raw=train.tags.$lang.raw.$l
 
     cat $orig/$lang/$f | \
     grep -v '<url>' | \
@@ -58,10 +59,21 @@ for l in $src $tgt; do
     sed -e 's/<\/description>//g' | \
     perl $TOKENIZER -threads 8 -l $l > $tmp/$tok
     echo ""
+
+    cat $orig/$lang/$f | \
+    grep -v '<url>' | \
+    grep -v '<talkid>' | \
+    grep -v '<keywords>' | \
+    sed -e 's/<title>//g' | \
+    sed -e 's/<\/title>//g' | \
+    sed -e 's/<description>//g' | \
+    sed -e 's/<\/description>//g' > $tmp/$raw
+    echo ""
 done
-perl $CLEAN -ratio 1.5 $tmp/train.tags.$lang.tok $src $tgt $tmp/train.tags.$lang.clean 1 50
+perl $CLEAN -ratio 1.5 $tmp/train.tags.$lang $src $tgt $tmp/train.tags.$lang.clean 1 50
 for l in $src $tgt; do
     perl $LC < $tmp/train.tags.$lang.clean.$l > $tmp/train.tags.$lang.$l
+    cat $tmp/train.tags.$lang.clean.$l.raw > $tmp/train.tags.$lang.raw.$l
 done
 
 echo "pre-processing valid/test data..."
@@ -77,14 +89,21 @@ for l in $src $tgt; do
     perl $TOKENIZER -threads 8 -l $l | \
     perl $LC > $f
     echo ""
+    grep '<seg id' $o | \
+        sed -e 's/<seg id="[0-9]*">\s*//g' | \
+        sed -e 's/\s*<\/seg>\s*//g' | \
+        sed -e "s/\’/\'/g" > $f.raw
     done
+    echo ""
 done
 
 
 echo "creating train, valid, test..."
 for l in $src $tgt; do
-    awk '{if (NR%23 == 0)  print $0; }' $tmp/train.tags.de-en.$l > $prep/valid.de-en.$l
-    awk '{if (NR%23 != 0)  print $0; }' $tmp/train.tags.de-en.$l > $prep/train.de-en.$l
+    awk '{if (NR%23 == 0)  print $0; }' $tmp/train.tags.$lang.$l > $prep/valid.de-en.$l
+    awk '{if (NR%23 == 0)  print $0; }' $tmp/train.tags.$lang.raw.$l > $prep/valid.de-en.$l.raw
+    awk '{if (NR%23 != 0)  print $0; }' $tmp/train.tags.$lang.$l > $prep/train.de-en.$l
+    awk '{if (NR%23 != 0)  print $0; }' $tmp/train.tags.$lang.raw.$l > $prep/train.de-en.$l.raw
 
     cat $tmp/IWSLT14.TED.dev2010.de-en.$l \
         $tmp/IWSLT14.TEDX.dev2012.de-en.$l \
@@ -92,6 +111,12 @@ for l in $src $tgt; do
         $tmp/IWSLT14.TED.tst2011.de-en.$l \
         $tmp/IWSLT14.TED.tst2012.de-en.$l \
         > $prep/test.de-en.$l
+    cat $tmp/IWSLT14.TED.dev2010.de-en.$l.raw \
+        $tmp/IWSLT14.TEDX.dev2012.de-en.$l.raw \
+        $tmp/IWSLT14.TED.tst2010.de-en.$l.raw \
+        $tmp/IWSLT14.TED.tst2011.de-en.$l.raw \
+        $tmp/IWSLT14.TED.tst2012.de-en.$l.raw \
+        > $prep/test.de-en.$l.raw
 done
 
 echo "writing train, valid, test..."
