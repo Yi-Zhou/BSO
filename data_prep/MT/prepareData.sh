@@ -3,7 +3,7 @@
 # slightly modified from https://github.com/facebookresearch/MIXER/blob/master/prepareData.sh
 
 echo 'Cloning Moses github repository (for tokenization scripts)...'
-git clone https://github.com/moses-smt/mosesdecoder.git
+git clone https://github.com/Yi-Zhou/mosesdecoder.git
 
 
 SCRIPTS=mosesdecoder/scripts
